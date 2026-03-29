@@ -4,6 +4,7 @@
  */
 package Modelo;
 import Controlador.clsAsignacionAplicacionPerfil;
+import Controlador.clsAplicaciones;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -12,156 +13,131 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+
 /**
  *
- * @author reyes
+ * @author Xander Reyes
  */
 public class AsignacionAplicacionPerfilDAO {
-    
+        
     // Clase DAO que se encarga de realizar las operaciones
 // de base de datos para la tabla Asignacion_Aplicacion_Perfil
 
     // Sentencia SQL para obtener todos los registros de la tabla
-    private static final String SQL_SELECT =
-    "SELECT Aplcodigo, Percodigo, APLPins, APLPsel, APLPupd, APLPdel, APLPrep FROM AsignacionAplicacionPerfil";
+    private static final String SQL_SELECT_POR_PERFIL = 
+    "SELECT * FROM asignacionaplicacionperfil WHERE Percodigo = ?";
+
+private static final String SQL_SELECT_DISPONIBLES = 
+    "SELECT * FROM aplicaciones WHERE Aplcodigo NOT IN (SELECT Aplcodigo FROM asignacionaplicacionperfil WHERE Percodigo = ?)";
 
     // Sentencia SQL para insertar un nuevo registro en la tabla
-    private static final String SQL_INSERT =
-    "INSERT INTO AsignacionAplicacionPerfil(Aplcodigo, Percodigo, APLPins, APLPsel, APLPupd, APLPdel, APLPrep) VALUES(?,?,?,?,?,?,?)";
+    private static final String SQL_INSERT = 
+    "INSERT INTO asignacionaplicacionperfil (Aplcodigo, Percodigo, APLPins, APLPsel, APLPupd, APLPdel, APLPrep) VALUES (?,?,?,?,?,?,?)";
 
-    // Sentencia SQL para actualizar un registro existente
-    private static final String SQL_UPDATE =
-    "UPDATE AsignacionAplicacionPerfil SET Percodigo=?, APLPins=?, APLPsel=?, APLPupd=?, APLPdel=?, APLPrep=? WHERE Aplcodigo=?";
+private static final String SQL_DELETE =
+    "DELETE FROM asignacionaplicacionperfil WHERE Aplcodigo=? AND Percodigo=?";
 
-    // Sentencia SQL para eliminar un registro según su AplCódigo
-    private static final String SQL_DELETE =
-    "DELETE FROM AsignacionAplicacionPerfil WHERE Aplcodigo=?";
+// Asegúrate de que el nombre de la tabla sea consistente (minúsculas/mayúsculas)
+private static final String SQL_UPDATE = 
+    "UPDATE asignacionaplicacionperfil SET APLPins=?, APLPsel=?, APLPupd=?, APLPdel=?, APLPrep=? " + 
+    "WHERE Aplcodigo=? AND Percodigo=?";
 
     // Sentencia SQL para consultar un registro específico según su AplCódigo
     private static final String SQL_QUERY =
-    "SELECT Aplcodigo, Percodigo, APLPins, APLPsel, APLPupd, APLPdel, APLPdel FROM AsignacionAplicacionPerfil WHERE Aplcodigo=?";
+    "SELECT Aplcodigo, Percodigo, APLPins, APLPsel, APLPupd, APLPdel, APLPdel FROM asignacionaplicacionperfil WHERE Percodigo=?";
 
-
-    // Método que obtiene todos los registros de la tabla
-    public List<clsAsignacionAplicacionPerfil> select() {
-
-        // Variables necesarias para conectarse y ejecutar la consulta
-        Connection conn = null;
-        PreparedStatement stmt = null;
-        ResultSet rs = null;
-
-        // Objeto que representará cada registro de la tabla
-        clsAsignacionAplicacionPerfil asignacion = null;
-
-        // Lista donde se guardarán todos los registros encontrados
-        List<clsAsignacionAplicacionPerfil> asignaciones = new ArrayList<>();
-
-        try {
-
-            // Se obtiene la conexión a la base de datos
-            conn = Conexion.getConnection();
-
-            // Se prepara la consulta SQL
-            stmt = conn.prepareStatement(SQL_SELECT);
-
-            // Se ejecuta la consulta
-            rs = stmt.executeQuery();
-
-            // Se recorren todos los registros obtenidos
-            while (rs.next()) {
-
-                // Se obtienen los valores de cada columna
-                int Aplcodigo = rs.getInt("Aplcodigo");
-                int Percodigo = rs.getInt("Percodigo");
-
-                String insert = rs.getString("APLPins");
-                String select = rs.getString("APLPsel");
-                String update = rs.getString("APLPupd");
-                String delete = rs.getString("APLPdel");
-                String reporte = rs.getString("APLPrep");
-
-                // Se crea el objeto con los valores obtenidos
-                asignacion = new clsAsignacionAplicacionPerfil(Aplcodigo, Percodigo);
-
-                // Se asignan los permisos correspondientes
-                asignacion.setAPLPins(insert);
-                asignacion.setAPLPsel(select);
-                asignacion.setAPLPupd(update);
-                asignacion.setAPLPdel(delete);
-                asignacion.setAPLPrep(reporte);
-
-                // Se agrega el objeto a la lista
-                asignaciones.add(asignacion);
-            }
-
-        } catch (SQLException ex) {
-
-            // En caso de error se muestra en consola
-            ex.printStackTrace(System.out);
-
-        } finally {
-
-            // Se cierran todos los recursos utilizados
-            Conexion.close(rs);
-            Conexion.close(stmt);
-            Conexion.close(conn);
+//Devido a que existen errores en el DAO de los compañeros.
+public boolean verificarExistenciaPerfil(int perCodigo) {
+    String sql = "SELECT COUNT(*) FROM perfiles WHERE Percodigo = ?";
+    try (Connection conn = Conexion.getConnection();
+         PreparedStatement stmt = conn.prepareStatement(sql)) {
+        
+        stmt.setInt(1, perCodigo);
+        ResultSet rs = stmt.executeQuery();
+        
+        if (rs.next()) {
+            return rs.getInt(1) > 0; // Si el conteo es > 0, el perfil existe
         }
-
-        // Se devuelve la lista con todos los registros
-        return asignaciones;
+    } catch (SQLException ex) {
+        ex.printStackTrace(System.out);
     }
+    return false;
+}
+public List<clsAsignacionAplicacionPerfil> obtenerAsignadas(int Percodigo) {
+    List<clsAsignacionAplicacionPerfil> lista = new ArrayList<>();
+    try (Connection conn = Conexion.getConnection();
+         PreparedStatement stmt = conn.prepareStatement(SQL_SELECT_POR_PERFIL)) {
+        
+        stmt.setInt(1, Percodigo);
+        ResultSet rs = stmt.executeQuery();
 
-
-    // Método para insertar un nuevo registro en la tabla
-    public int insert(clsAsignacionAplicacionPerfil asignacion) {
-
-        Connection conn = null;
-        PreparedStatement stmt = null;
-
-        // Variable que indica cuántos registros fueron afectados
-        int rows = 0;
-
-        try {
-
-            // Se obtiene la conexión
-            conn = Conexion.getConnection();
-
-            // Se prepara la consulta SQL de inserción
-            stmt = conn.prepareStatement(SQL_INSERT);
-
-            // Se asignan los valores a los parámetros de la consulta
-            stmt.setInt(1, asignacion.getAplcodigo());
-            stmt.setInt(2, asignacion.getPercodigo());
-            stmt.setString(3, asignacion.getAPLPins());
-            stmt.setString(4, asignacion.getAPLPsel());
-            stmt.setString(5, asignacion.getAPLPupd());
-            stmt.setString(6, asignacion.getAPLPdel());
-            stmt.setString(7, asignacion.getAPLPrep());
-
-            // Se muestra en consola la consulta que se ejecutará
-            System.out.println("Ejecutando query:" + SQL_INSERT);
-
-            // Se ejecuta la inserción
-            rows = stmt.executeUpdate();
-
-            // Se muestran los registros afectados
-            System.out.println("Registros afectados:" + rows);
-
-        } catch (SQLException ex) {
-
-            // Se muestra el error si ocurre alguno
-            ex.printStackTrace(System.out);
-
-        } finally {
-
-            // Se cierran los recursos utilizados
-            Conexion.close(stmt);
-            Conexion.close(conn);
+        while (rs.next()) {
+            clsAsignacionAplicacionPerfil asignacion = new clsAsignacionAplicacionPerfil();
+            asignacion.setAplcodigo(rs.getInt("Aplcodigo"));
+            // ... setea los demás campos (ins, sel, upd, etc.) igual que en tu método select
+            lista.add(asignacion);
         }
-
-        // Se devuelve la cantidad de registros afectados
-        return rows;
+    } catch (SQLException ex) {
+        ex.printStackTrace(System.out);
     }
+    return lista;
+}
+public boolean existePerfil(int perCodigo) {
+    String sql = "SELECT COUNT(*) FROM perfiles WHERE Percodigo = ?";
+    try (Connection conn = Conexion.getConnection();
+         PreparedStatement stmt = conn.prepareStatement(sql)) {
+        stmt.setInt(1, perCodigo);
+        ResultSet rs = stmt.executeQuery();
+        if (rs.next()) {
+            return rs.getInt(1) > 0;
+        }
+    } catch (SQLException ex) {
+        ex.printStackTrace(System.out);
+    }
+    return false;
+}
+
+// Método para llenar tablaAplDis
+public List<clsAplicaciones> obtenerDisponibles(int Percodigo) {
+    List<clsAplicaciones> lista = new ArrayList<>();
+    try (Connection conn = Conexion.getConnection();
+         PreparedStatement stmt = conn.prepareStatement(SQL_SELECT_DISPONIBLES)) {
+        
+        stmt.setInt(1, Percodigo);
+        ResultSet rs = stmt.executeQuery();
+
+        while (rs.next()) {
+            clsAplicaciones app = new clsAplicaciones();
+            app.setAplcodigo(rs.getInt("Aplcodigo"));
+            app.setAplnombre(rs.getString("Aplnombre"));
+            app.setAplestado(rs.getString("Aplestado"));
+            lista.add(app);
+        }
+    } catch (SQLException ex) {
+        ex.printStackTrace(System.out);
+    }
+    return lista;
+}
+
+  public clsAsignacionAplicacionPerfil obtenerRegistroEspecifico(int aplCodigo, int perCodigo) {
+    clsAsignacionAplicacionPerfil asig = null;
+    String sql = "SELECT * FROM asignacionaplicacionperfil WHERE Aplcodigo = ? AND Percodigo = ?";
+    try (Connection conn = Conexion.getConnection();
+         PreparedStatement stmt = conn.prepareStatement(sql)) {
+        stmt.setInt(1, aplCodigo);
+        stmt.setInt(2, perCodigo);
+        ResultSet rs = stmt.executeQuery();
+        if (rs.next()) {
+            asig = new clsAsignacionAplicacionPerfil(rs.getInt("Aplcodigo"), rs.getInt("Percodigo"));
+            asig.setAPLPins(rs.getString("APLPins").charAt(0));
+            asig.setAPLPsel(rs.getString("APLPsel").charAt(0));
+            asig.setAPLPupd(rs.getString("APLPupd").charAt(0));
+            asig.setAPLPdel(rs.getString("APLPdel").charAt(0));
+            asig.setAPLPrep(rs.getString("APLPrep").charAt(0));
+        }
+    } catch (Exception e) { e.printStackTrace(); }
+    return asig;
+}
 
 
     // Método para actualizar un registro existente
@@ -179,21 +155,20 @@ public class AsignacionAplicacionPerfilDAO {
             conn = Conexion.getConnection();
 
             // Se muestra la consulta que se ejecutará
-            System.out.println("Ejecutando query: " + SQL_UPDATE);
 
             // Se prepara la consulta de actualización
             stmt = conn.prepareStatement(SQL_UPDATE);
 
-            // Se asignan los nuevos valores
-            stmt.setInt(1, asignacion.getPercodigo());
-            stmt.setString(2, asignacion.getAPLPins());
-            stmt.setString(3, asignacion.getAPLPsel());
-            stmt.setString(4, asignacion.getAPLPupd());
-            stmt.setString(5, asignacion.getAPLPdel());
-            stmt.setString(6, asignacion.getAPLPrep());
+        // 1 al 5: Los permisos (S o N)
+        stmt.setString(1, String.valueOf(asignacion.getAPLPins()));
+        stmt.setString(2, String.valueOf(asignacion.getAPLPsel()));
+        stmt.setString(3, String.valueOf(asignacion.getAPLPupd()));
+        stmt.setString(4, String.valueOf(asignacion.getAPLPdel()));
+        stmt.setString(5, String.valueOf(asignacion.getAPLPrep()));
 
-            // Se indica qué registro se actualizará
-            stmt.setInt(7, asignacion.getAplcodigo());
+        // 6 y 7: Las llaves para el WHERE
+        stmt.setInt(6, asignacion.getAplcodigo());
+        stmt.setInt(7, asignacion.getPercodigo());
 
             // Se ejecuta la actualización
             rows = stmt.executeUpdate();
@@ -215,115 +190,79 @@ public class AsignacionAplicacionPerfilDAO {
 
         return rows;
     }
+        public int insert(clsAsignacionAplicacionPerfil asig) {
+        try (Connection conn = Conexion.getConnection(); PreparedStatement stmt = conn.prepareStatement(SQL_INSERT)) {
+            stmt.setInt(1, asig.getAplcodigo());
+            stmt.setInt(2, asig.getPercodigo());
+            stmt.setString(3, String.valueOf(asig.getAPLPins()));
+            stmt.setString(4, String.valueOf(asig.getAPLPsel()));
+            stmt.setString(5, String.valueOf(asig.getAPLPupd()));
+            stmt.setString(6, String.valueOf(asig.getAPLPdel()));
+            stmt.setString(7, String.valueOf(asig.getAPLPrep()));
+            return stmt.executeUpdate();
+        } catch (SQLException ex) { ex.printStackTrace(); return 0; }
+    }
 
 
+public int guardarOActualizar(clsAsignacionAplicacionPerfil asig) {
+    // Primero intentamos buscar si ya existe
+    clsAsignacionAplicacionPerfil existe = obtenerRegistroEspecifico(asig.getAplcodigo(), asig.getPercodigo());
+    
+    if (existe == null) {
+        return insert(asig); // Si no existe, lo crea
+    } else {
+        return update(asig); // Si existe, lo actualiza (incluyendo los RadioButtons)
+    }
+}
+public int borrarRegistroEspecifico(int aplCodigo, int perCodigo) {
+    String sql = "DELETE FROM asignacionaplicacionperfil WHERE Aplcodigo = ? AND Percodigo = ?";
+    int rows = 0;
+    try (Connection conn = Conexion.getConnection();
+         PreparedStatement stmt = conn.prepareStatement(sql)) {
+        
+        stmt.setInt(1, aplCodigo);
+        stmt.setInt(2, perCodigo);
+        rows = stmt.executeUpdate();
+        
+    } catch (SQLException ex) {
+        ex.printStackTrace(System.out);
+    }
+    return rows;
+}
+public int borrarTodoDePerfil(int perCodigo) {
+    String sql = "DELETE FROM asignacionaplicacionperfil WHERE Percodigo = ?";
+    try (Connection conn = Conexion.getConnection();
+         PreparedStatement stmt = conn.prepareStatement(sql)) {
+        stmt.setInt(1, perCodigo);
+        return stmt.executeUpdate();
+    } catch (SQLException ex) {
+        ex.printStackTrace(System.out);
+        return 0;
+    }
+}
     // Método para eliminar un registro según su AplCódigo
     public int delete(clsAsignacionAplicacionPerfil asignacion) {
+ Connection conn = null;
+    PreparedStatement stmt = null;
+    int rows = 0;
 
-        Connection conn = null;
-        PreparedStatement stmt = null;
+    try {
+        conn = Conexion.getConnection();
+        stmt = conn.prepareStatement(SQL_DELETE);
 
-        int rows = 0;
+        // Pasamos ambos parámetros: App y Perfil
+        stmt.setInt(1, asignacion.getAplcodigo());
+        stmt.setInt(2, asignacion.getPercodigo());
 
-        try {
-
-            // Se obtiene la conexión a la base de datos
-            conn = Conexion.getConnection();
-
-            // Se muestra la consulta que se ejecutará
-            System.out.println("Ejecutando query:" + SQL_DELETE);
-
-            // Se prepara la consulta de eliminación
-            stmt = conn.prepareStatement(SQL_DELETE);
-
-            // Se asigna el código del registro que se eliminará
-            stmt.setInt(1, asignacion.getAplcodigo());
-
-            // Se ejecuta la eliminación
-            rows = stmt.executeUpdate();
-
-            // Se muestran los registros eliminados
-            System.out.println("Registros eliminados:" + rows);
-
-        } catch (SQLException ex) {
-
-            // Se muestra el error en consola
-            ex.printStackTrace(System.out);
-
-        } finally {
-
-            // Se cierran los recursos utilizados
-            Conexion.close(stmt);
-            Conexion.close(conn);
-        }
-
-        return rows;
+        rows = stmt.executeUpdate();
+        System.out.println("Registros eliminados: " + rows);
+    } catch (SQLException ex) {
+        ex.printStackTrace(System.out);
+    } finally {
+        Conexion.close(stmt);
+        Conexion.close(conn);
     }
-
-
-    // Método que busca un registro específico según su AplCódigo
-    public clsAsignacionAplicacionPerfil query(clsAsignacionAplicacionPerfil asignacion) {
-
-        Connection conn = null;
-        PreparedStatement stmt = null;
-        ResultSet rs = null;
-
-        try {
-
-            // Se obtiene la conexión
-            conn = Conexion.getConnection();
-
-            // Se muestra la consulta que se ejecutará
-            System.out.println("Ejecutando query:" + SQL_QUERY);
-
-            // Se prepara la consulta
-            stmt = conn.prepareStatement(SQL_QUERY);
-
-            // Se establece el código que se desea buscar
-            stmt.setInt(1, asignacion.getAplcodigo());
-
-            // Se ejecuta la consulta
-            rs = stmt.executeQuery();
-
-            // Si se encuentra el registro
-            while (rs.next()) {
-
-                // Se obtienen los datos del registro
-                int AplCodigo = rs.getInt("Aplcodigo");
-                int PerCodigo = rs.getInt("Percodigo");
-
-                String insert = rs.getString("APLPins");
-                String select = rs.getString("APLPsel");
-                String update = rs.getString("APLPupd");
-                String delete = rs.getString("APLPdel");
-                String reporte = rs.getString("APLPrep");
-
-                // Se crea el objeto con los datos obtenidos
-                asignacion = new clsAsignacionAplicacionPerfil(AplCodigo, PerCodigo);
-
-                // Se asignan los permisos
-                asignacion.setAPLPins(insert);
-                asignacion.setAPLPsel(select);
-                asignacion.setAPLPupd(update);
-                asignacion.setAPLPdel(delete);
-                asignacion.setAPLPrep(reporte);
-            }
-
-        } catch (SQLException ex) {
-
-            // Se muestra el error en caso de fallo
-            ex.printStackTrace(System.out);
-
-        } finally {
-
-            // Se cierran los recursos utilizados
-            Conexion.close(rs);
-            Conexion.close(stmt);
-            Conexion.close(conn);
-        }
-
-        // Se devuelve el registro encontrado
-        return asignacion;
+    return rows;
     }
-    
+  
 }
