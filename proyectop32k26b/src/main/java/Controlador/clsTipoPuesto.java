@@ -1,5 +1,5 @@
 package Controlador;
-
+// Angoly Camila Aarujo Mayen 9959-24-17623
 public class clsTipoPuesto {
 
     private int m_iPuestoId;
