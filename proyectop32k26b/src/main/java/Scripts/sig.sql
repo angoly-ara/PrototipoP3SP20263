@@ -143,6 +143,14 @@ CREATE TABLE IF NOT EXISTS `asignacionperfilusuario` (
 
 -- --------------------------------------------------------
 
+CREATE TABLE IF NOT EXISTS `tipo_puesto`(
+puesto_id INT AUTO_INCREMENT,
+    puesto_nombre VARCHAR(50),
+    puesto_sueldo DECIMAL(10,2),
+    puesto_estado VARCHAR(1),
+    PRIMARY KEY (puesto_id)
+);
+
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
