@@ -142,7 +142,7 @@ CREATE TABLE IF NOT EXISTS `asignacionperfilusuario` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
-
+/*Angoly Camila Araujo Mayen 
 CREATE TABLE IF NOT EXISTS `tipo_puesto`(
 puesto_id INT AUTO_INCREMENT,
     puesto_nombre VARCHAR(50),

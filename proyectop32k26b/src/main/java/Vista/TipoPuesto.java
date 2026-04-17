@@ -1,5 +1,5 @@
 package Vista;
-
+// Angoly Camila Aarujo Mayen 9959/24/17623
 import Controlador.clsTipoPuesto;
 import Modelo.TipoPuestoDAO;
 import java.util.List;

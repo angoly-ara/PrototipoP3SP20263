@@ -1,5 +1,5 @@
 package Modelo;
-
+// Angoly Camila Araujo Mayen 9959-24-17623
 import Controlador.clsTipoPuesto;
 import java.sql.*;
 import java.util.ArrayList;
